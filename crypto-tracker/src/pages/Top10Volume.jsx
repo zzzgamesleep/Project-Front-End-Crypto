@@ -4,12 +4,19 @@ import useTop10CoinsByVolume from '../hooks/useTop10CoinsByVolume';
 const Top10Volume = () => {
   const { topCoins, loading, error } = useTop10CoinsByVolume();
 
-  if (loading) return <p className="text-center text-blue-500">Loading...</p>;
+  // Loading and Error States
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
   if (error) return <p className="text-center text-red-500">Error fetching data: {error.message}</p>;
 
   return (
     <div className="max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-md overflow-x-auto">
-      <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">Top 10 Volume Coins</h1>
+      <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">Top 10 Volume Meme Coins</h1>
       <table className="w-full">
         <thead>
           <tr className="bg-gray-100 text-left">
