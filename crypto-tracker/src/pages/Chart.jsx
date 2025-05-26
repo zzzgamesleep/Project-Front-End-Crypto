@@ -4,6 +4,8 @@ import axios from 'axios';
 import useRealtimeCoinPrice from '../hooks/useRealtimeCoinPrice';
 import useRealtimeCandlestick from '../hooks/useRealtimeCandlestick';
 import CoinSelector from './CoinSelector';
+import { useAuth } from '../context/AuthContext'; // Để kiểm tra trạng thái đăng nhập
+import { useFavorites } from '../context/FavoriteContext'; // Để lấy các hàm xử lý yêu thích
 
 import {
   ChartCanvas,
@@ -30,6 +32,7 @@ const Chart = () => {
   const [showCandlestick, setShowCandlestick] = useState(false);
   const [xExtents, setXExtents] = useState(null);
   const chartRef = useRef(null);
+  
   const calculateCandleWidth = useCallback((dataLength) => {
     if (dataLength <= 10) return 40;
     if (dataLength <= 30) return 20;

@@ -11,7 +11,9 @@ const News = () => {
       <h2 className="text-4xl font-extrabold mb-8 text-center text-gray-800">📰 Tin Tức Mới Nhất</h2>
 
       {loading && (
-        <p className="text-center text-lg text-gray-500 animate-pulse">Đang tải tin tức...</p>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
       )}
 
       {error && (
