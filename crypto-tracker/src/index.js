@@ -4,12 +4,15 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { AuthProvider } from './context/AuthContext'; // Import AuthProvider
+import { FavoriteProvider } from './context/FavoriteContext'; // Import FavoriteProvider
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <AuthProvider> {/* Wrap App with AuthProvider */}
-      <App />
+    <AuthProvider> {/* AuthProvider wraps everything */}
+      <FavoriteProvider> {/* FavoriteProvider needs AuthContext, so it's inside AuthProvider */}
+        <App />
+      </FavoriteProvider>
     </AuthProvider>
   </React.StrictMode>
 );

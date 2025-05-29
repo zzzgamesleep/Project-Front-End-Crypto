@@ -5,13 +5,15 @@ dotenv.config();
 
 // Import Middlewares and Routes
 const { generalLimiter, apiLimiter } = require("./middlewares/rateLimiter");
+const authMiddleware = require("./middlewares/authMiddleware"); // Import auth middleware
 const coinHistoryRoute = require("./routes/coinHistory");
 const coinsPricesRoute = require("./routes/coinsPrices");
 const candlestickRoute = require("./routes/coinCandlestick");
 const searchCoinsRoute = require("./routes/searchCoins");
 const top10VolumeRoute = require("./routes/top10Volume");
 const newsRoute = require("./routes/news");
-const authRoute = require("./routes/auth"); // Import the new auth route
+const authRoute = require("./routes/auth");
+const favoritesRoute = require("./routes/favorites"); // Import favorites route
 const pool = require("./utils/db"); // Import pool to ensure connection is tested on startup
 
 const app = express();
@@ -34,6 +36,9 @@ app.use("/api/news", apiLimiter, newsRoute);
 // Authentication routes (using general limiter)
 app.use("/api/auth", authRoute);
 
+// Favorites routes (protected by auth middleware)
+app.use("/api/favorites", authMiddleware, favoritesRoute);
+
 // --- Start Server ---
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
@@ -42,3 +47,4 @@ app.listen(PORT, () => {
     .then(() => console.log("MySQL connection verified after server start."))
     .catch(err => console.error("MySQL connection error after server start:", err));
 });
+

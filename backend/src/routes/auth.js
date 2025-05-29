@@ -86,18 +86,26 @@ router.post("/login", async (req, res) => {
     }
 
     // Generate JWT token
-    const payload = { userId: user.id, username: user.username, email: user.email };
+    // Đúng cấu trúc như middleware mong đợi:
+    const payload = {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email
+      }
+    };
+
     const secret = process.env.JWT_SECRET;
     if (!secret) {
-        console.error("JWT_SECRET is not defined in .env file!");
-        return res.status(500).json({ message: "Internal server error: JWT configuration missing." });
+      console.error("JWT_SECRET is not defined in .env file!");
+      return res.status(500).json({ message: "Internal server error: JWT configuration missing." });
     }
-    const token = jwt.sign(payload, secret, { expiresIn: "1h" }); // Token expires in 1 hour
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-    res.status(200).json({ 
-        message: "Login successful.", 
-        token: token, 
-        user: { id: user.id, username: user.username, email: user.email } 
+    res.status(200).json({
+      message: "Login successful.",
+      token: token,
+      user: { id: user.id, username: user.username, email: user.email }
     });
 
   } catch (error) {

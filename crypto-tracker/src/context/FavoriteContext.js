@@ -5,10 +5,6 @@ import { useAuth } from './AuthContext'; // Need auth context for token
 // Create the context
 const FavoriteContext = createContext(null);
 
-// API base URL (should ideally be in .env)
-// Assuming these endpoints exist and require authentication
-const API_URL = 'http://localhost:4000/api/favorites';
-
 // Create the provider component
 export const FavoriteProvider = ({ children }) => {
   const [favoriteCoins, setFavoriteCoins] = useState([]);
@@ -20,7 +16,8 @@ export const FavoriteProvider = ({ children }) => {
   const createAxiosInstance = useCallback(() => {
     if (!token) return null;
     return axios.create({
-      baseURL: 'http://localhost:4000', // Base URL for API calls
+      // Use relative URL or configure baseURL globally if preferred
+      baseURL: 'http://localhost:4000', 
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -36,24 +33,20 @@ export const FavoriteProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     const axiosInstance = createAxiosInstance();
-    if (!axiosInstance) return; // Should not happen if authenticated
+    if (!axiosInstance) {
+        setLoading(false);
+        setError("Authentication token not available.");
+        return;
+    }
 
     try {
-      // Simulate GET /api/favorites
-      console.log('Simulating GET /api/favorites');
-      // In a real app, replace this with:
-      // const response = await axiosInstance.get('/api/favorites');
-      // setFavoriteCoins(response.data.favorites || []);
-
-      // --- Simulation Start ---
-      // Retrieve from localStorage for simulation purposes
-      const storedFavorites = localStorage.getItem('simulatedFavorites');
-      setFavoriteCoins(storedFavorites ? JSON.parse(storedFavorites) : []);
-      // --- Simulation End ---
-
+      console.log('Fetching favorites from /api/favorites');
+      const response = await axiosInstance.get('/api/favorites'); // Call the real backend endpoint
+      setFavoriteCoins(response.data.favorites || []); // Assuming the backend returns { favorites: [...] }
     } catch (err) {
       console.error("Error fetching favorites:", err.response?.data?.message || err.message);
       setError(err.response?.data?.message || 'Failed to fetch favorite coins.');
+      setFavoriteCoins([]); // Clear favorites on error
     } finally {
       setLoading(false);
     }
@@ -67,24 +60,23 @@ export const FavoriteProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     const axiosInstance = createAxiosInstance();
-    if (!axiosInstance) return;
+     if (!axiosInstance) {
+        setLoading(false);
+        setError("Authentication token not available.");
+        return;
+    }
+
+    const originalFavorites = [...favoriteCoins]; // Store original state for potential rollback
+    setFavoriteCoins(prev => [...prev, symbol]); // Optimistic update
 
     try {
-      // Simulate POST /api/favorites { symbol }
-      console.log(`Simulating POST /api/favorites with symbol: ${symbol}`);
-      // In a real app, replace this with:
-      // await axiosInstance.post('/api/favorites', { symbol });
-
-      // --- Simulation Start ---
-      const updatedFavorites = [...favoriteCoins, symbol];
-      localStorage.setItem('simulatedFavorites', JSON.stringify(updatedFavorites));
-      setFavoriteCoins(updatedFavorites);
-      // --- Simulation End ---
-
+      console.log(`Adding favorite: POST /api/favorites with symbol: ${symbol}`);
+      await axiosInstance.post('/api/favorites', { symbol }); // Call the real backend endpoint
+      // No need to update state here if backend confirms, already optimistically updated
     } catch (err) {
       console.error("Error adding favorite:", err.response?.data?.message || err.message);
       setError(err.response?.data?.message || 'Failed to add favorite coin.');
-      // Optionally revert state change on error
+      setFavoriteCoins(originalFavorites); // Rollback optimistic update on error
     } finally {
       setLoading(false);
     }
@@ -98,36 +90,34 @@ export const FavoriteProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     const axiosInstance = createAxiosInstance();
-    if (!axiosInstance) return;
+     if (!axiosInstance) {
+        setLoading(false);
+        setError("Authentication token not available.");
+        return;
+    }
+
+    const originalFavorites = [...favoriteCoins]; // Store original state for potential rollback
+    setFavoriteCoins(prev => prev.filter(fav => fav !== symbol)); // Optimistic update
 
     try {
-      // Simulate DELETE /api/favorites/:symbol
-      console.log(`Simulating DELETE /api/favorites/${symbol}`);
-      // In a real app, replace this with:
-      // await axiosInstance.delete(`/api/favorites/${symbol}`);
-
-      // --- Simulation Start ---
-      const updatedFavorites = favoriteCoins.filter(fav => fav !== symbol);
-      localStorage.setItem('simulatedFavorites', JSON.stringify(updatedFavorites));
-      setFavoriteCoins(updatedFavorites);
-      // --- Simulation End ---
-
+      console.log(`Removing favorite: DELETE /api/favorites/${symbol}`);
+      await axiosInstance.delete(`/api/favorites/${symbol}`); // Call the real backend endpoint
+      // No need to update state here if backend confirms, already optimistically updated
     } catch (err) {
       console.error("Error removing favorite:", err.response?.data?.message || err.message);
       setError(err.response?.data?.message || 'Failed to remove favorite coin.');
-      // Optionally revert state change on error
+      setFavoriteCoins(originalFavorites); // Rollback optimistic update on error
     } finally {
       setLoading(false);
     }
   }, [isAuthenticated, token, favoriteCoins, createAxiosInstance]);
 
-  // Fetch favorites when authentication status changes
+  // Fetch favorites when authentication status changes (e.g., on login)
   useEffect(() => {
     if (isAuthenticated) {
       fetchFavorites();
     } else {
       setFavoriteCoins([]); // Clear favorites when logged out
-      localStorage.removeItem('simulatedFavorites'); // Clear simulation storage on logout
     }
   }, [isAuthenticated, fetchFavorites]);
 
@@ -136,7 +126,7 @@ export const FavoriteProvider = ({ children }) => {
     favoriteCoins,
     loading,
     error,
-    fetchFavorites,
+    fetchFavorites, // Expose fetchFavorites if needed elsewhere
     addFavorite,
     removeFavorite,
     isFavorite: (symbol) => favoriteCoins.includes(symbol)
@@ -152,7 +142,8 @@ export const FavoriteProvider = ({ children }) => {
 // Custom hook to use the FavoriteContext
 export const useFavorites = () => {
   const context = useContext(FavoriteContext);
-  if (context === undefined) {
+  // Updated check to handle null as well
+  if (context === null || context === undefined) { 
     throw new Error('useFavorites must be used within a FavoriteProvider');
   }
   return context;

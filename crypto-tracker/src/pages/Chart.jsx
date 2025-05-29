@@ -4,8 +4,8 @@ import axios from 'axios';
 import useRealtimeCoinPrice from '../hooks/useRealtimeCoinPrice';
 import useRealtimeCandlestick from '../hooks/useRealtimeCandlestick';
 import CoinSelector from './CoinSelector';
-import { useAuth } from '../context/AuthContext'; // Để kiểm tra trạng thái đăng nhập
-import { useFavorites } from '../context/FavoriteContext'; // Để lấy các hàm xử lý yêu thích
+import { useAuth } from '../context/AuthContext'; // Import useAuth
+import { useFavorites } from '../context/FavoriteContext'; // Import useFavorites
 
 import {
   ChartCanvas,
@@ -32,7 +32,16 @@ const Chart = () => {
   const [showCandlestick, setShowCandlestick] = useState(false);
   const [xExtents, setXExtents] = useState(null);
   const chartRef = useRef(null);
-  
+
+  // Custom Hooks
+  const { priceData, loading: realtimeLoading, error: realtimeError } = useRealtimeCoinPrice(selectedCoin, 5000);
+  const { candlestickData, loading: candleLoading, error: candleError } = useRealtimeCandlestick(selectedCoin);
+  const [hoveredCandle, setHoveredCandle] = useState(null);
+
+  // Auth and Favorites Context
+  const { isAuthenticated } = useAuth();
+  const { addFavorite, removeFavorite, isFavorite, loading: favLoading } = useFavorites();
+
   const calculateCandleWidth = useCallback((dataLength) => {
     if (dataLength <= 10) return 40;
     if (dataLength <= 30) return 20;
@@ -40,10 +49,6 @@ const Chart = () => {
     if (dataLength <= 100) return 10;
     return 5;
   }, []);
-  // Custom Hooks
-  const { priceData, loading: realtimeLoading, error: realtimeError } = useRealtimeCoinPrice(selectedCoin, 5000);
-  const { candlestickData, loading: candleLoading, error: candleError } = useRealtimeCandlestick(selectedCoin);
-  const [hoveredCandle, setHoveredCandle] = useState(null);
 
   // Fetch Historical Data
   useEffect(() => {
@@ -174,6 +179,23 @@ const Chart = () => {
     }
   }, []);
 
+  // Handle Favorite Toggle
+  const handleFavoriteToggle = () => {
+    console.log('[DEBUG] handleFavoriteToggle called. isAuthenticated:', isAuthenticated, 'selectedCoin:', selectedCoin); // Log 1
+    if (!isAuthenticated) {
+      console.log('[DEBUG] Not authenticated, returning.'); // Log 2
+      return;
+    }
+    console.log('[DEBUG] Is favorite?', isFavorite(selectedCoin)); // Log 3
+    if (isFavorite(selectedCoin)) {
+      console.log('[DEBUG] Calling removeFavorite...'); // Log 4
+      removeFavorite(selectedCoin);
+    } else {
+      console.log('[DEBUG] Calling addFavorite...'); // Log 5
+      addFavorite(selectedCoin);
+    }
+  };
+
   // Loading and Error States
   if (loading || realtimeLoading || (showCandlestick && candleLoading)) {
     return (
@@ -193,16 +215,32 @@ const Chart = () => {
 
   if (!historicalData.length) return null;
 
+  // Log state before rendering button
+  console.log('[DEBUG] Chart Render - isAuthenticated:', isAuthenticated, 'favLoading:', favLoading);
+
   // Render Chart Component
   return (
     <div className="p-4 w-full max-w-6xl mx-auto">
-      {/* Header Section */}
-      <div className="mb-6">
+      {/* Header Section with Favorite Button */}
+      <div className="mb-6 flex justify-between items-center">
         <CoinSelector
           selectedCoin={selectedCoin}
           onCoinChange={handleCoinChange}
         />
-        <h2 className="text-3xl font-bold mb-4 text-center">{selectedCoin}/USD Chart</h2>
+        <h2 className="text-3xl font-bold text-center flex-grow mx-4">{selectedCoin}/USD Chart</h2>
+        {/* Favorite Button - Only show if logged in */}
+        {isAuthenticated && (
+          <button
+            onClick={(e) => { console.log('[DEBUG] Star button clicked!'); handleFavoriteToggle(); }} // Inline log + call handler
+            disabled={favLoading}
+            className={`p-2 rounded-full transition-colors duration-200 ${favLoading ? 'opacity-50 cursor-not-allowed' : ''} ${isFavorite(selectedCoin) ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 hover:text-yellow-400'}`}
+            title={isFavorite(selectedCoin) ? 'Remove from Favorites' : 'Add to Favorites'}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill={isFavorite(selectedCoin) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.539 1.118l-3.975-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.539-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Price Info Section */}
